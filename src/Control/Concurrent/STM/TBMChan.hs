@@ -29,6 +29,7 @@ module Control.Concurrent.STM.TBMChan
     , newTBMChan
     , newTBMChanIO
     -- I don't know how to define dupTBMChan with the correct semantics
+    , dupTBMChan
     -- ** Reading from TBMChans
     , readTBMChan
     , tryReadTBMChan
@@ -99,6 +100,17 @@ newTBMChanIO n = do
     reads  <- newTVarIO 0
     chan   <- newTChanIO
     return (TBMChan closed slots reads chan)
+
+-- | Duplicate a @TBMChan@: the duplicate channel begins empty, but
+-- data written to either channel from then on will be available
+-- from both, and closing one copy will close them all. Hence this
+-- creates a kind of broadcast channel, where data written by anyone
+-- is seen by everyone else.
+dupTBMChan :: TBMChan a -> STM (TBMChan a)
+dupTBMChan (TBMChan closed freeSlots lastSync chan) = do
+    new_chan <- dupTChan chan
+    return (TBMChan closed freeSlots lastSync new_chan)
+
 
 
 -- | Read the next value from the @TBMChan@, retrying if the channel
